@@ -28,18 +28,18 @@ Claude Code is an AI agent that can read files, write code, and execute commands
 │  Weaker                                                                     │
 │    │                                                                        │
 │    │   ┌──────────────┐                                                     │
-│    │   │   Firejail   │  Namespaces + Seccomp                              │
+│    │   │   Firejail   │  Namespaces + Seccomp                               │
 │    │   │              │  Easy to configure, good defaults                   │
 │    │   └──────────────┘                                                     │
 │    │                                                                        │
 │    │   ┌──────────────┐                                                     │
-│    │   │  Bubblewrap  │  Namespaces (manual config)                        │
+│    │   │  Bubblewrap  │  Namespaces (manual config)                         │
 │    │   │              │  Maximum control, minimal overhead                  │
 │    │   └──────────────┘                                                     │
 │    │                                                                        │
 │    │   ┌──────────────┐                                                     │
-│    │   │Apple Container│  Hypervisor (VM)                                  │
-│    │   │              │  Strongest isolation, higher overhead              │
+│    │   │Apple Container│  Hypervisor (VM)                                   │
+│    │   │              │  Strongest isolation, higher overhead               │
 │    ▼   └──────────────┘                                                     │
 │  Stronger                                                                   │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -74,14 +74,14 @@ Bubblewrap (`bwrap`) uses Linux namespaces to create an isolated environment:
 │  ┌───────────────────────────────────────────────────────────┐  │
 │  │                    BWRAP SANDBOX                          │  │
 │  │                                                           │  │
-│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐       │  │
-│  │  │ Mount NS    │  │   PID NS    │  │  User NS    │       │  │
-│  │  │             │  │             │  │             │       │  │
-│  │  │ /usr (RO)   │  │ Isolated    │  │ Mapped UID  │       │  │
-│  │  │ /lib (RO)   │  │ process     │  │             │       │  │
-│  │  │ $PWD (RW)   │  │ tree        │  │             │       │  │
-│  │  │ ~/.claude(RW│  │             │  │             │       │  │
-│  │  └─────────────┘  └─────────────┘  └─────────────┘       │  │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐        │  │
+│  │  │ Mount NS    │  │   PID NS    │  │  User NS    │        │  │
+│  │  │             │  │             │  │             │        │  │
+│  │  │ /usr (RO)   │  │ Isolated    │  │ Mapped UID  │        │  │
+│  │  │ /lib (RO)   │  │ process     │  │             │        │  │
+│  │  │ $PWD (RW)   │  │ tree        │  │             │        │  │
+│  │  │ ~/.claude(RW│  │             │  │             │        │  │
+│  │  └─────────────┘  └─────────────┘  └─────────────┘        │  │
 │  │                                                           │  │
 │  │                    ┌─────────────┐                        │  │
 │  │                    │   Claude    │                        │  │
@@ -269,7 +269,7 @@ Apple Container uses macOS's Virtualization.framework to run a lightweight Linux
 │  │  │               LIGHTWEIGHT VM                        │  │  │
 │  │  │                                                     │  │  │
 │  │  │  ┌─────────────┐  ┌──────────────────────────────┐  │  │  │
-│  │  │  │ Linux Kernel│  │        Userspace            │  │  │  │
+│  │  │  │ Linux Kernel│  │        Userspace             │  │  │  │
 │  │  │  │  (custom)   │  │  ┌────────────────────────┐  │  │  │  │
 │  │  │  │             │  │  │     Debian minimal     │  │  │  │  │
 │  │  │  │             │  │  │  ┌──────────────────┐  │  │  │  │  │
@@ -284,9 +284,9 @@ Apple Container uses macOS's Virtualization.framework to run a lightweight Linux
 │  │  │                                                     │  │  │
 │  │  │  ┌─────────────────────────────────────────────────┐│  │  │
 │  │  │  │              VIRTIO DEVICES                     ││  │  │
-│  │  │  │  • virtio-fs: /workspace ←→ $PWD               ││  │  │
-│  │  │  │  • virtio-net: NAT networking                  ││  │  │
-│  │  │  │  • virtio-vsock: Host communication            ││  │  │
+│  │  │  │  • virtio-fs: /workspace ←→ $PWD                ││  │  │
+│  │  │  │  • virtio-net: NAT networking                   ││  │  │
+│  │  │  │  • virtio-vsock: Host communication             ││  │  │
 │  │  │  └─────────────────────────────────────────────────┘│  │  │
 │  │  └─────────────────────────────────────────────────────┘  │  │
 │  └───────────────────────────────────────────────────────────┘  │
