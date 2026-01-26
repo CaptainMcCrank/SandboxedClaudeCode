@@ -37,10 +37,10 @@ Claude Code is an AI agent that can read files, write code, and execute commands
 │    │   │              │  Maximum control, minimal overhead                  │
 │    │   └──────────────┘                                                     │
 │    │                                                                        │
-│    │   ┌──────────────┐                                                     │
+│    │   ┌───────────────┐                                                    │
 │    │   │Apple Container│  Hypervisor (VM)                                   │
-│    │   │              │  Strongest isolation, higher overhead               │
-│    ▼   └──────────────┘                                                     │
+│    │   │               │  Strongest isolation, higher overhead              │
+│    ▼   └───────────────┘                                                    │
 │  Stronger                                                                   │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
