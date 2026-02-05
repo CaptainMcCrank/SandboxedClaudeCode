@@ -13,9 +13,23 @@ if [ -n "$SSH_AUTH_SOCK" ] && [ -S "$SSH_AUTH_SOCK" ]; then
   SSH_ENV="--setenv SSH_AUTH_SOCK $SSH_AUTH_SOCK"
 fi
 
-# GPG key ID - only set if defined
+# GPG configuration
+# Bind the full .gnupg directory (with write access for trustdb updates)
+# and the GPG agent socket directory for signing operations
 GPG_ENV=""
 [ -n "$GPG_SIGNING_KEY_ID" ] && GPG_ENV="--setenv GPG_SIGNING_KEY_ID $GPG_SIGNING_KEY_ID"
+
+GPG_BINDS=""
+# Bind the .gnupg directory with write access (needed for trustdb, key operations)
+if [ -d "$HOME/.gnupg" ]; then
+  GPG_BINDS="--bind $HOME/.gnupg $HOME/.gnupg"
+fi
+
+# Bind the GPG agent socket directory (usually /run/user/<uid>/gnupg)
+GPG_SOCKDIR=$(gpgconf --list-dirs socketdir 2>/dev/null)
+if [ -n "$GPG_SOCKDIR" ] && [ -d "$GPG_SOCKDIR" ]; then
+  GPG_BINDS="$GPG_BINDS --bind $GPG_SOCKDIR $GPG_SOCKDIR"
+fi
 
 bwrap \
   --ro-bind /usr /usr \
@@ -38,6 +52,7 @@ bwrap \
   --bind "$HOME/.npm" "$HOME/.npm" \
   --bind "$HOME/.claude" "$HOME/.claude" \
   --bind "$PWD" "$PWD" \
+  $GPG_BINDS \
   --tmpfs /tmp \
   --proc /proc \
   --dev /dev \
