@@ -418,7 +418,188 @@ All three approaches implement the same security model:
 
 ---
 
+## Git Commit Signing (GPG)
+
+If you use GPG to sign git commits, additional configuration is required to make signing work inside the sandbox.
+
+### Why GPG Signing Fails in Sandboxes
+
+GPG commit signing requires several components to work together:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    GPG SIGNING FLOW                              │
+│                                                                  │
+│  1. Git invokes GPG to sign commit                               │
+│           │                                                      │
+│           ▼                                                      │
+│  2. GPG needs to read private key from ~/.gnupg/private-keys-v1.d│
+│           │                                                      │
+│           ▼                                                      │
+│  3. GPG contacts gpg-agent (via socket) for passphrase           │
+│           │                                                      │
+│           ▼                                                      │
+│  4. gpg-agent uses pinentry to prompt user (needs GPG_TTY)       │
+│           │                                                      │
+│           ▼                                                      │
+│  5. Signed commit created                                        │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+Sandboxes can break this flow by:
+- Not binding the `~/.gnupg` directory (missing private keys)
+- Not binding the gpg-agent socket (can't communicate with agent)
+- Not having `GPG_TTY` set (pinentry can't prompt for passphrase)
+
+### Host System Prerequisites
+
+Before configuring the sandbox, ensure GPG signing works on your host system:
+
+**1. Set GPG_TTY (required for passphrase prompts)**
+
+Add to your shell profile (`~/.bashrc`, `~/.zshrc`, or equivalent):
+
+```bash
+export GPG_TTY=$(tty)
+```
+
+Then reload your shell or run `source ~/.bashrc`.
+
+**2. Verify GPG signing works on host**
+
+```bash
+# Test signing (should prompt for passphrase and succeed)
+echo "test" | gpg --clearsign
+
+# Verify your signing key is available
+gpg --list-secret-keys
+```
+
+**3. Configure git to use your key**
+
+```bash
+# Find your key ID
+gpg --list-secret-keys --keyid-format=long
+
+# Configure git (use your key ID)
+git config --global user.signingkey YOUR_KEY_ID
+git config --global commit.gpgsign true
+```
+
+### Sandbox-Specific Configuration
+
+#### Bubblewrap
+
+The `bubblewrap_claude.sh` script must bind:
+
+1. **Full `~/.gnupg` directory** (with write access for trustdb updates)
+2. **GPG agent socket directory** (usually `/run/user/<uid>/gnupg`)
+
+The script includes this configuration:
+
+```bash
+# Bind the .gnupg directory with write access
+if [ -d "$HOME/.gnupg" ]; then
+  GPG_BINDS="--bind $HOME/.gnupg $HOME/.gnupg"
+fi
+
+# Bind the GPG agent socket directory
+GPG_SOCKDIR=$(gpgconf --list-dirs socketdir 2>/dev/null)
+if [ -n "$GPG_SOCKDIR" ] && [ -d "$GPG_SOCKDIR" ]; then
+  GPG_BINDS="$GPG_BINDS --bind $GPG_SOCKDIR $GPG_SOCKDIR"
+fi
+```
+
+#### Firejail
+
+Add to your firejail profile or command line:
+
+```bash
+# Allow access to GPG directory and sockets
+firejail --whitelist=${HOME}/.gnupg \
+         --whitelist=/run/user/$(id -u)/gnupg \
+         claude
+```
+
+#### Apple Container
+
+GPG signing inside the VM requires the key to exist within the container. Options:
+
+1. **Forward gpg-agent socket via vsock** (complex)
+2. **Copy the key into the container** (security tradeoff)
+3. **Sign commits after exiting the container** (recommended)
+
+For most users, we recommend making commits outside the container or using the container for unsigned work.
+
+### Verifying GPG Works in Sandbox
+
+After configuring, test inside the sandbox:
+
+```bash
+# Inside sandboxed Claude session, run:
+echo "test" | gpg --clearsign
+
+# Should succeed and show signed message
+# If it fails, check troubleshooting section below
+```
+
+---
+
 ## Troubleshooting
+
+### GPG Signing
+
+**"gpg: signing failed: Inappropriate ioctl for device"**
+
+This means GPG can't prompt for your passphrase. Fix:
+
+```bash
+# On your HOST system (not in sandbox), add to ~/.bashrc or ~/.zshrc:
+export GPG_TTY=$(tty)
+
+# Reload shell
+source ~/.bashrc
+
+# Verify it's set
+echo $GPG_TTY  # Should show something like /dev/pts/0
+```
+
+**"gpg: Note: trustdb not writable"**
+
+The `~/.gnupg` directory is mounted read-only. Ensure the bubblewrap script uses `--bind` (read-write) not `--ro-bind`:
+
+```bash
+# Correct (read-write)
+--bind $HOME/.gnupg $HOME/.gnupg
+
+# Wrong (read-only, causes this error)
+--ro-bind $HOME/.gnupg $HOME/.gnupg
+```
+
+**"gpg: signing failed: No secret key"**
+
+The private key material isn't accessible. Verify:
+
+```bash
+# Check if private-keys-v1.d is bound
+ls ~/.gnupg/private-keys-v1.d/
+
+# If empty or error, the .gnupg directory isn't properly mounted
+```
+
+**"gpg: can't connect to the agent"**
+
+The gpg-agent socket isn't accessible:
+
+```bash
+# Find socket location
+gpgconf --list-dirs socketdir
+
+# Verify socket exists
+ls -la $(gpgconf --list-dirs agent-socket)
+
+# Ensure the socket directory is bound in the sandbox script
+```
 
 ### Bubblewrap
 
