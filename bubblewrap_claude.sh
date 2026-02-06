@@ -13,6 +13,22 @@ if [ -n "$SSH_AUTH_SOCK" ] && [ -S "$SSH_AUTH_SOCK" ]; then
   SSH_ENV="--setenv SSH_AUTH_SOCK $SSH_AUTH_SOCK"
 fi
 
+# D-Bus session bus - required for GNOME Keyring / Secret Service access
+# (Claude Code stores auth tokens in the system keyring)
+DBUS_BINDS=""
+DBUS_ENV=""
+XDG_RUNTIME="/run/user/$(id -u)"
+if [ -S "$XDG_RUNTIME/bus" ]; then
+  DBUS_BINDS="--bind $XDG_RUNTIME/bus $XDG_RUNTIME/bus"
+  DBUS_ENV="--setenv DBUS_SESSION_BUS_ADDRESS unix:path=$XDG_RUNTIME/bus"
+fi
+
+# GNOME Keyring sockets - needed for secret service credential retrieval
+KEYRING_BINDS=""
+if [ -d "$XDG_RUNTIME/keyring" ]; then
+  KEYRING_BINDS="--bind $XDG_RUNTIME/keyring $XDG_RUNTIME/keyring"
+fi
+
 # GPG configuration
 # Bind the full .gnupg directory (with write access for trustdb updates)
 # and the GPG agent socket directory for signing operations
@@ -51,14 +67,18 @@ bwrap \
   --ro-bind "$HOME/.local" "$HOME/.local" \
   --bind "$HOME/.npm" "$HOME/.npm" \
   --bind "$HOME/.claude" "$HOME/.claude" \
+  --bind "$HOME/.claude.json" "$HOME/.claude.json" \
   --bind "$PWD" "$PWD" \
   $GPG_BINDS \
+  $DBUS_BINDS \
+  $KEYRING_BINDS \
   --tmpfs /tmp \
   --proc /proc \
   --dev /dev \
   --setenv HOME "$HOME" \
   --setenv USER "$USER" \
   $SSH_ENV \
+  $DBUS_ENV \
   --share-net \
   --unshare-pid \
   --die-with-parent \
