@@ -306,8 +306,8 @@ Apple Container uses macOS's Virtualization.framework to run a lightweight Linux
 
 ```bash
 # Clone the repository
-git clone https://github.com/apple/swift-container
-cd swift-container
+git clone https://github.com/apple/container
+cd container
 
 # Build
 swift build -c release
