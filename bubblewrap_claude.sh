@@ -59,8 +59,9 @@ bwrap \
   --ro-bind /etc/passwd /etc/passwd \
   --ro-bind /etc/group /etc/group \
   --ro-bind "$HOME/.ssh/known_hosts" "$HOME/.ssh/known_hosts" \
+  --tmpfs /tmp \
   $SSH_BINDS \
-  --ro-bind "$HOME/.ssh/id_ed25519.pub" "$HOME/.ssh/id_ed25519.pub" \
+  --ro-bind "$HOME/.ssh/id_rsa.pub" "$HOME/.ssh/id_rsa.pub" \
   --ro-bind /usr/bin/gpg /usr/bin/gpg \
   $GPG_ENV \
   --ro-bind "$HOME/.gitconfig" "$HOME/.gitconfig" \
@@ -73,7 +74,6 @@ bwrap \
   $GPG_BINDS \
   $DBUS_BINDS \
   $KEYRING_BINDS \
-  --tmpfs /tmp \
   --proc /proc \
   --dev /dev \
   --setenv HOME "$HOME" \
