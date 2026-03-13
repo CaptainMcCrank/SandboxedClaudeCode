@@ -611,8 +611,32 @@ sudo apt install bubblewrap  # Debian/Ubuntu
 
 **"Permission denied" on bind mounts**
 ```bash
-# Check if the directory exists
+# Create the files and directories the script expects to exist.
 mkdir -p ~/.claude ~/.npm
+touch ~/.claude.json
+```
+
+**"bwrap: setting up uid map: Permission denied"**
+
+AppArmor may be preventing bubblewrap from creating user namespaces.  If so,
+restart AppArmor using the command:
+```bash
+sudo systemctl reload apparmor.service
+```
+after creating file /etc/apparmor.d/local-bwrap containing:
+```bash
+# This profile allows everything and only exists to give the
+# application a name instead of having the label "unconfined"
+
+abi <abi/4.0>,
+include <tunables/global>
+
+profile local-bwrap /usr/bin/bwrap flags=(unconfined) {
+  userns,
+
+  # Site-specific additions and overrides. See local/README for details.
+  include if exists <local/bwrap>
+}
 ```
 
 ### Firejail
