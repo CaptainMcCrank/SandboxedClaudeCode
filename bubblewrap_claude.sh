@@ -54,7 +54,11 @@ if [ -n "$GPG_SOCKDIR" ] && [ -d "$GPG_SOCKDIR" ]; then
   GPG_BINDS="$GPG_BINDS --bind $GPG_SOCKDIR $GPG_SOCKDIR"
 fi
 
+command=$(which claude)
+shift
+
 bwrap \
+  --ro-bind "$command" "$command" \
   --ro-bind /usr /usr \
   --ro-bind /lib /lib \
   --ro-bind /lib64 /lib64 \
@@ -90,4 +94,4 @@ bwrap \
   --unshare-pid \
   --die-with-parent \
   --chdir "$PWD" \
-  "$(which claude)" "$@"
+  "$command" "$@"
