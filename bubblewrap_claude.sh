@@ -65,6 +65,9 @@ bwrap \
   --ro-bind /etc/passwd /etc/passwd \
   --ro-bind /etc/group /etc/group \
   --ro-bind "$HOME/.ssh/known_hosts" "$HOME/.ssh/known_hosts" \
+  --dir /var \
+  --tmpfs /var/home \
+  --dir "$(readlink -f "$HOME")" \
   --tmpfs /tmp \
   $SSH_BINDS \
   $SSH_PUBKEY_BINDS \
@@ -76,7 +79,7 @@ bwrap \
   --bind "$HOME/.npm" "$HOME/.npm" \
   --bind "$HOME/.claude" "$HOME/.claude" \
   --bind "$HOME/.claude.json" "$HOME/.claude.json" \
-  --bind "$PWD" "$PWD" \
+  --bind "$(pwd -P)" "$(pwd -P)" \
   $GPG_BINDS \
   $DBUS_BINDS \
   $KEYRING_BINDS \
@@ -89,5 +92,5 @@ bwrap \
   --share-net \
   --unshare-pid \
   --die-with-parent \
-  --chdir "$PWD" \
+  --chdir "$(pwd -P)" \
   "$(which claude)" "$@"
